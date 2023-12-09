@@ -4,6 +4,7 @@ const bcrypts = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const prisma = new PrismaClient();
 const tokenService = require('../service/token.service.js');
+const jwtVerify = require('../middleware/jwtVerify.js');
 const authRouter = express.Router();
 
 authRouter.get('/api/refresh', async (req, res) => {
@@ -139,6 +140,24 @@ authRouter.get('/api/logout', (req, res) => {
 		res.clearCookie('accessToken');
 		res.clearCookie('refreshToken');
 		res.status(200).json({ success: true });
+	} catch (error) {
+		console.log(error);
+	}
+});
+authRouter.get('/api/is_auth', jwtVerify, async (req, res) => {
+	try {
+		const token = req.cookies.refreshToken;
+		const tokens = await tokenService.refreshToken(token);
+		res.cookie('accessToken', tokens.accessToken, { httpOnly: true, maxAge: 1000 * 30, sameSite: 'none' });
+		res.cookie('refreshToken', tokens.refreshToken, { httpOnly: true, maxAge: 1000 * 60 * 60 * 60 * 30, sameSite: 'none' });
+
+		res.status(200).json({
+			success: true,
+			payload: {
+				accessToken: tokens.accessToken,
+			},
+			message: 'user is auth',
+		});
 	} catch (error) {
 		console.log(error);
 	}
