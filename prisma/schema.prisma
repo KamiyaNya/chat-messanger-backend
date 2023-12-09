@@ -8,29 +8,34 @@ generator client {
 }
 
 model User {
-  id             Int      @id @default(autoincrement())
-  userName       String   @unique
-  userEmail      String   @unique
-  userPassword   String
-  userOnline     Boolean
-  userLastOnline DateTime
-  userCreatedAt  DateTime @default(now())
-  userUUID       String
-  groups         Groups[]
-  Tokens         Tokens[]
+  id               Int                @id @default(autoincrement())
+  userName         String             @unique
+  userEmail        String             @unique
+  userPassword     String
+  userOnline       Boolean
+  userLastOnline   DateTime
+  userCreatedAt    DateTime           @default(now())
+  userUUID         String
+  userImage        String?
+  groups           Groups[]
+  Tokens           Tokens[]
+  PersonalMessages PersonalMessages[]
+  GroupMessages    GroupMessages[]
+  Friends          Friends[]
 }
 
 model Group {
-  id        Int      @id @default(autoincrement())
-  groupName String
-  groups    Groups[]
+  id            Int             @id @default(autoincrement())
+  groupName     String
+  groups        Groups[]
+  GroupMessages GroupMessages[]
 }
 
 model Groups {
-  id      Int    @id @default(autoincrement())
-  user    User?  @relation(fields: [userId], references: [id])
+  id      Int   @id @default(autoincrement())
+  user    User  @relation(fields: [userId], references: [id])
   userId  Int
-  group   Group? @relation(fields: [groupId], references: [id])
+  group   Group @relation(fields: [groupId], references: [id])
   groupId Int
 }
 
@@ -40,4 +45,31 @@ model Tokens {
   user     User     @relation(fields: [userId], references: [id])
   userId   Int
   expireIn DateTime
+}
+
+model PersonalMessages {
+  id         Int      @id @default(autoincrement())
+  message    String   @db.Text
+  user       User     @relation(fields: [fromUserId], references: [id])
+  fromUserId Int
+  toUserId   Int
+  createdAt  DateTime
+  roomUUID   String
+}
+
+model GroupMessages {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  group     Group    @relation(fields: [groupId], references: [id])
+  groupId   Int
+  message   String   @db.Text
+  createdAt DateTime
+}
+
+model Friends {
+  id       Int  @id @default(autoincrement())
+  user     User @relation(fields: [friendId], references: [id])
+  friendId Int
+  userId   Int
 }

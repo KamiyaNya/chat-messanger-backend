@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 
 module.exports = function jwtVerify(req, res, next) {
 	try {
-		const accessToken = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
+		const accessToken = req.headers.authorization?.split(' ')[1] || req.cookies.accessToken;
 		const refreshToken = req.cookies.refreshToken;
 		const secret = process.env.JWT_PRIVATE;
 		if (!refreshToken) {

@@ -70,6 +70,11 @@ class Token {
 			where: {
 				id: isTokenExist.userId,
 			},
+			select: {
+				userEmail: true,
+				id: true,
+				userName: true,
+			},
 		});
 
 		const accessToken = jwt.sign(user, privateKey, {
