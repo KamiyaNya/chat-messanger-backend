@@ -1,7 +1,10 @@
+const dayjs = require('dayjs');
 const bcrypts = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const prisma = require('../prisma/prismaInstance');
 const tokenService = require('../service/token.service.js');
+const decodeToken = require('../utils/decodeToken.js');
+const chalk = require('chalk');
 
 class Auth {
 	async login(req, res) {
@@ -32,12 +35,23 @@ class Auth {
 					message: 'Неверный пароль',
 				});
 			}
-			const user = { userEmail: isUserExist.userEmail, userId: isUserExist.id, userName: isUserExist.userName };
+			const user = { userEmail: isUserExist.userEmail, id: isUserExist.id, userName: isUserExist.userName };
 
 			const tokens = await tokenService.generateToken(user, req.cookies.refreshToken);
 
-			res.cookie('accessToken', tokens.accessToken, { httpOnly: true, maxAge: 1000 * 30, sameSite: 'none', secure: true });
+			// res.cookie('accessToken', tokens.accessToken, { httpOnly: true, maxAge: 1000 * 30, sameSite: 'none', secure: true });
 			res.cookie('refreshToken', tokens.refreshToken, { httpOnly: true, maxAge: 1000 * 60 * 60 * 60 * 30, sameSite: 'none', secure: true });
+
+			await prisma.user.update({
+				where: {
+					id: isUserExist.id,
+				},
+				data: {
+					userOnline: true,
+					userLastOnline: dayjs().format(),
+				},
+			});
+
 			res.status(200).json({
 				success: true,
 				payload: {
@@ -109,7 +123,6 @@ class Auth {
 		try {
 			const token = req.cookies.refreshToken;
 			if (!token) {
-				res.clearCookie('accessToken');
 				res.clearCookie('refreshToken');
 				return res.status(403).json({ success: false, error: 'Вы не авторизованы' });
 			}
@@ -118,7 +131,7 @@ class Auth {
 
 			const { id } = decodeToken(tokens.accessToken);
 
-			res.cookie('accessToken', tokens.accessToken, { httpOnly: true, maxAge: 1000 * 30, sameSite: 'none', secure: true });
+			// res.cookie('accessToken', tokens.accessToken, { httpOnly: true, maxAge: 1000 * 30, sameSite: 'none', secure: true });
 			res.cookie('refreshToken', tokens.refreshToken, { httpOnly: true, maxAge: 1000 * 60 * 60 * 60 * 30, sameSite: 'none', secure: true });
 
 			res.status(200).json({
@@ -129,12 +142,21 @@ class Auth {
 				},
 			});
 		} catch (error) {
-			res.status(500).json({ success: false, error: error });
+			res.status(400).json({ success: false, error: error.message });
 		}
 	}
 
 	async logout(req, res) {
 		try {
+			await prisma.user.update({
+				where: {
+					id: req.userId,
+				},
+				data: {
+					userOnline: false,
+					userLastOnline: dayjs().format(),
+				},
+			});
 			res.clearCookie('accessToken');
 			res.clearCookie('refreshToken');
 			res.status(200).json({ success: true });
