@@ -1,18 +1,18 @@
-const { PrismaClient } = require('@prisma/client');
 const dayjs = require('dayjs');
 const jwt = require('jsonwebtoken');
-const prisma = new PrismaClient();
+const prisma = require('../prisma/prismaInstance');
 
 class Token {
-	async generateToken(user, token) {
-		await prisma.$connect();
+	constructor() {
+		this.privateKey = process.env.JWT_PRIVATE;
+	}
 
-		const privateKey = process.env.JWT_PRIVATE;
-		const accessToken = jwt.sign(user, privateKey, {
+	async generateToken(user, token) {
+		const accessToken = jwt.sign(user, this.privateKey, {
 			expiresIn: '30s',
 		});
 
-		const refreshToken = jwt.sign({ token: accessToken }, privateKey, {
+		const refreshToken = jwt.sign({ token: accessToken }, this.privateKey, {
 			expiresIn: '30d',
 		});
 
@@ -51,9 +51,6 @@ class Token {
 	}
 
 	async refreshToken(token) {
-		await prisma.$connect();
-		const privateKey = process.env.JWT_PRIVATE;
-
 		const isTokenExist = await prisma.tokens.findFirst({
 			where: {
 				token: token,
@@ -77,11 +74,11 @@ class Token {
 			},
 		});
 
-		const accessToken = jwt.sign(user, privateKey, {
+		const accessToken = jwt.sign(user, this.privateKey, {
 			expiresIn: '30s',
 		});
 
-		const refreshToken = jwt.sign({ token: accessToken }, privateKey, {
+		const refreshToken = jwt.sign({ token: accessToken }, this.privateKey, {
 			expiresIn: '30d',
 		});
 
