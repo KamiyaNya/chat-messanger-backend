@@ -12,16 +12,15 @@ model User {
   userName         String             @unique
   userEmail        String             @unique
   userPassword     String
-  userOnline       Boolean
-  userLastOnline   DateTime
+  userOnline       Boolean            @default(false)
+  userLastOnline   DateTime           @default(now())
   userCreatedAt    DateTime           @default(now())
   userUUID         String
   userImage        String?
   groups           Groups[]
   Tokens           Tokens[]
-  PersonalMessages PersonalMessages[]
   GroupMessages    GroupMessages[]
-  Friends          Friends[]
+  PersonalMessages PersonalMessages[]
 }
 
 model Group {
@@ -48,13 +47,12 @@ model Tokens {
 }
 
 model PersonalMessages {
-  id         Int      @id @default(autoincrement())
-  message    String   @db.Text
-  user       User     @relation(fields: [fromUserId], references: [id])
-  fromUserId Int
-  toUserId   Int
-  createdAt  DateTime
-  roomUUID   String
+  id        Int      @id @default(autoincrement())
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+  roomUUID  String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int      @default(1)
 }
 
 model GroupMessages {
@@ -64,12 +62,18 @@ model GroupMessages {
   group     Group    @relation(fields: [groupId], references: [id])
   groupId   Int
   message   String   @db.Text
-  createdAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model Friends {
-  id       Int  @id @default(autoincrement())
-  user     User @relation(fields: [friendId], references: [id])
-  friendId Int
+  id       Int @id @default(autoincrement())
   userId   Int
+  friendId Int
+}
+
+model Rooms {
+  id       Int    @id @default(autoincrement())
+  roomUUID String
+  userId   Int?
+  friendId Int?
 }
