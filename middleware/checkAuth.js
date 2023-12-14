@@ -2,13 +2,8 @@ const jwt = require('jsonwebtoken');
 
 module.exports = function checkAuth(req, res, next) {
 	try {
-		let accessToken = req?.headers.authorization.split(' ')[1] || null;
-		const refreshToken = req.cookies.refreshToken;
+		let accessToken = req.headers.authorization.split(' ')[1];
 		const secret = process.env.JWT_PRIVATE;
-		if (!accessToken) {
-			return res.status(403).json({ success: false });
-		}
-
 		const { id } = jwt.verify(accessToken, secret);
 		req.userId = id;
 		next();
