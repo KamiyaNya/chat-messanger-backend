@@ -10,7 +10,7 @@ authRouter.post('/api/auth/register', authController.register);
 
 authRouter.get('/api/auth/refresh', authController.refresh);
 
-authRouter.get('/api/auth/logout', authController.logout);
+authRouter.get('/api/auth/logout', checkAuth, authController.logout);
 
 authRouter.get('/api/auth/is_auth', checkAuth, authController.isAuth);
 
