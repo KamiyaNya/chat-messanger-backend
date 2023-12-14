@@ -1,4 +1,4 @@
-const prismaInstance = require('../prisma/prismaInstance');
+const prisma = require('../prisma/prismaInstance');
 const decodeToken = require('../utils/decodeToken');
 
 class Chat {
@@ -7,7 +7,7 @@ class Chat {
 			const reqUserId = req.userId;
 			const { userId, roomId } = req.body;
 
-			await prismaInstance.rooms.create({
+			await prisma.rooms.create({
 				data: {
 					roomUUID: roomId,
 					userId: reqUserId,
@@ -28,18 +28,29 @@ class Chat {
 
 	async getRoomMessages(req, res) {
 		try {
-			const { roomId } = req.query;
+			const { roomId, skip } = req.query;
 
-			const messages = await prismaInstance.personalMessages.findMany({
+			const totalMessages = await prisma.personalMessages.count({
 				where: {
 					roomUUID: roomId,
 				},
+			});
+			const skipRange = skip ? skip : totalMessages > 10 ? totalMessages - 10 : 0;
+
+			const messages = await prisma.personalMessages.findMany({
+				where: {
+					roomUUID: roomId,
+				},
+				skip: skipRange,
+				take: 10,
 			});
 
 			res.status(200).json({
 				success: true,
 				data: {
 					messages: messages,
+					totalMessages: totalMessages,
+					restMessages: skipRange,
 				},
 			});
 		} catch (error) {
