@@ -1,16 +1,16 @@
 const jwt = require('jsonwebtoken');
 
-module.exports = function jwtVerify(req, res, next) {
+module.exports = function checkAuth(req, res, next) {
 	try {
-		const accessToken = req.headers.authorization?.split(' ')[1] || req.cookies.accessToken;
+		let accessToken = req?.headers.authorization.split(' ')[1] || null;
 		const refreshToken = req.cookies.refreshToken;
 		const secret = process.env.JWT_PRIVATE;
-		if (!refreshToken) {
-			res.clearCookie('accessToken');
-			res.clearCookie('refreshToken');
-			return res.status(403).json({ success: false, error: 'Вы не авторизованы' });
+		if (!accessToken) {
+			return res.status(403).json({ success: false });
 		}
-		jwt.verify(accessToken, secret);
+
+		const { id } = jwt.verify(accessToken, secret);
+		req.userId = id;
 		next();
 	} catch (error) {
 		if (error.message === 'jwt expired') {
