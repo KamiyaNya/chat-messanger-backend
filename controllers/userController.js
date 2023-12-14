@@ -55,7 +55,7 @@ class Users {
 				},
 			});
 		} catch (error) {
-			res.status(500).json({ success: false, error: error.message });
+			res.status(400).json({ success: false, error: error.message });
 		}
 	}
 
@@ -80,7 +80,7 @@ class Users {
 					});
 					const room = await prisma.rooms.findFirst({
 						where: {
-							userId: id,
+							userId: reqUserId,
 							friendId: friendId.friendId,
 						},
 					});
@@ -96,7 +96,7 @@ class Users {
 				},
 			});
 		} catch (error) {
-			res.status(500).json({ success: false, error: error.message });
+			res.status(400).json({ success: false, error: error.message });
 		}
 	}
 
