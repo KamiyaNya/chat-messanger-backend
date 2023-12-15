@@ -7,7 +7,7 @@ class Token {
 		this.privateKey = process.env.JWT_PRIVATE;
 	}
 
-	async generateToken(user, token) {
+	async generateToken(user) {
 		const accessToken = jwt.sign(user, this.privateKey, {
 			expiresIn: '30s',
 		});
@@ -18,9 +18,10 @@ class Token {
 
 		const isTokenExist = await prisma.tokens.findFirst({
 			where: {
-				userId: user.userId,
+				userId: user.id,
 			},
 		});
+
 		const refreshExpired = dayjs().add(30, 'day').format();
 
 		if (isTokenExist) {
@@ -31,7 +32,7 @@ class Token {
 				data: {
 					token: refreshToken,
 					expireIn: refreshExpired,
-					userId: user.userId,
+					userId: user.id,
 				},
 			});
 		} else {
@@ -39,7 +40,7 @@ class Token {
 				data: {
 					token: refreshToken,
 					expireIn: refreshExpired,
-					userId: user.userId,
+					userId: user.id,
 				},
 			});
 		}
@@ -68,7 +69,6 @@ class Token {
 				id: isTokenExist.userId,
 			},
 			select: {
-				userEmail: true,
 				id: true,
 				userName: true,
 			},

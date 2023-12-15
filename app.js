@@ -13,10 +13,12 @@ const PORT = process.env.PORT;
 
 const io = new Server(httpServer, {
 	cors: {
-    origin: "http://localhost:3000",
-    credentials: true
-  }
+		origin: 'http://localhost:3000',
+		credentials: true,
+	},
 });
+
+app.use(express.static('public'));
 
 app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
 app.use(express.json());

@@ -4,13 +4,11 @@ const { v4: uuidv4 } = require('uuid');
 const prisma = require('../prisma/prismaInstance');
 const tokenService = require('../service/token.service.js');
 const decodeToken = require('../utils/decodeToken.js');
-const chalk = require('chalk');
 
 class Auth {
 	async login(req, res) {
 		try {
 			const { userEmail, userPassword } = req.body;
-			await prisma.$connect();
 
 			const isUserExist = await prisma.user.findFirst({
 				where: {
@@ -22,7 +20,7 @@ class Auth {
 				return res.status(400).json({
 					success: false,
 					field: 'email',
-					message: 'Пользователь с такой почтой не найден',
+					message: 'Неверная почта или пароль',
 				});
 			}
 
@@ -35,12 +33,11 @@ class Auth {
 					message: 'Неверный пароль',
 				});
 			}
-			const user = { userEmail: isUserExist.userEmail, id: isUserExist.id, userName: isUserExist.userName };
+			const user = { id: isUserExist.id, userName: isUserExist.userName };
 
-			const tokens = await tokenService.generateToken(user, req.cookies.refreshToken);
-
-			// res.cookie('accessToken', tokens.accessToken, { httpOnly: true, maxAge: 1000 * 30, sameSite: 'none', secure: true });
-			res.cookie('refreshToken', tokens.refreshToken, { httpOnly: true, maxAge: 1000 * 60 * 60 * 60 * 30, sameSite: 'none', secure: true });
+			const tokens = await tokenService.generateToken(user);
+			const HOST = process.env.HOST;
+			user.userImage = HOST + isUserExist.userImage;
 
 			await prisma.user.update({
 				where: {
@@ -52,18 +49,19 @@ class Auth {
 				},
 			});
 
+			res.cookie('refreshToken', tokens.refreshToken, { httpOnly: true, maxAge: 1000 * 60 * 60 * 60 * 30, sameSite: 'none', secure: true });
+
 			res.status(200).json({
 				success: true,
-				payload: {
-					accessToken: tokens.accessToken,
-					id: isUserExist.id,
-				},
+				data: { user: user, accessToken: tokens.accessToken },
 			});
 		} catch (error) {
 			res.status(400).json({
 				success: false,
 				message: error.message,
 			});
+
+			console.log(error);
 		}
 	}
 
@@ -129,20 +127,17 @@ class Auth {
 
 			const tokens = await tokenService.refreshToken(token);
 
-			const { id } = decodeToken(tokens.accessToken);
-
-			// res.cookie('accessToken', tokens.accessToken, { httpOnly: true, maxAge: 1000 * 30, sameSite: 'none', secure: true });
 			res.cookie('refreshToken', tokens.refreshToken, { httpOnly: true, maxAge: 1000 * 60 * 60 * 60 * 30, sameSite: 'none', secure: true });
 
 			res.status(200).json({
 				success: true,
 				payload: {
 					accessToken: tokens.accessToken,
-					id: id,
 				},
 			});
 		} catch (error) {
 			res.status(400).json({ success: false, error: error.message });
+			console.log(error);
 		}
 	}
 

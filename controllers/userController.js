@@ -90,18 +90,17 @@ class Users {
 					});
 				})
 			);
-
+			const HOST = process.env.HOST;
 			const users = roomUsers.map((room) => {
 				return {
 					id: room.user.id,
 					userName: room.user.userName,
 					userOnline: room.user.userOnline,
 					userLastOnline: room.user.userLastOnline,
-					userImage: room.user.userImage,
+					userImage: room.user.userImage ? HOST + room.user.userImage : null,
+					roomUUID: room.roomUUID,
 				};
 			});
-
-			console.log(users);
 
 			res.status(200).json({
 				success: true,
