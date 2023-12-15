@@ -63,36 +63,50 @@ class Users {
 		try {
 			const reqUserId = req.userId;
 
-			let friendsIds = await prisma.friends.findMany({
+			let currentUserRooms = await prisma.rooms.findMany({
 				where: {
 					userId: reqUserId,
 				},
 				select: {
-					friendId: true,
+					roomUUID: true,
 				},
 			});
+			currentUserRooms = currentUserRooms.map((room) => {
+				return room.roomUUID;
+			});
 
-			let friendInfo = await Promise.all(
-				friendsIds.map(async (friendId) => {
-					const friend = await prisma.user.findUnique({
-						where: { id: friendId.friendId },
-						select: { id: true, userName: true, userOnline: true, userLastOnline: true, userImage: true },
-					});
-					const room = await prisma.rooms.findFirst({
+			const roomUsers = await Promise.all(
+				currentUserRooms.map(async (room) => {
+					return await prisma.rooms.findFirst({
 						where: {
-							userId: reqUserId,
-							friendId: friendId.friendId,
+							roomUUID: room,
+							NOT: {
+								userId: reqUserId,
+							},
+						},
+						include: {
+							user: true,
 						},
 					});
-
-					return { ...friend, roomUUId: room?.roomUUID };
 				})
 			);
+
+			const users = roomUsers.map((room) => {
+				return {
+					id: room.user.id,
+					userName: room.user.userName,
+					userOnline: room.user.userOnline,
+					userLastOnline: room.user.userLastOnline,
+					userImage: room.user.userImage,
+				};
+			});
+
+			console.log(users);
 
 			res.status(200).json({
 				success: true,
 				data: {
-					friends: friendInfo,
+					friends: users,
 				},
 			});
 		} catch (error) {
