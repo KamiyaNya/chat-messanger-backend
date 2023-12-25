@@ -22,7 +22,6 @@ model User {
   GroupMessages    GroupMessages[]
   PersonalMessages PersonalMessages[]
   Rooms            Rooms[]
-  InviteToRoom     InviteToRoom[]
   Notifications    Notifications[]
 }
 
@@ -77,16 +76,20 @@ model Rooms {
 }
 
 model InviteToRoom {
-  id         Int      @id @default(autoincrement())
-  roomId     String
-  user       User     @relation(fields: [fromUserId], references: [id])
-  fromUserId Int
-  accept     Boolean?
+  id            Int             @id @default(autoincrement())
+  roomId        String
+  fromUserId    Int
+  toUserId      Int
+  Notifications Notifications[]
+  accept        Int             @default(0)
 }
 
 model Notifications {
-  id     Int     @id @default(autoincrement())
-  type   String?
-  user   User    @relation(fields: [userId], references: [id])
-  userId Int
+  id             Int          @id @default(autoincrement())
+  type           String?
+  notification   InviteToRoom @relation(fields: [notificationId], references: [id])
+  notificationId Int
+  user           User         @relation(fields: [userId], references: [id])
+  userId         Int          @default(1)
+  viewed         Boolean      @default(false)
 }
