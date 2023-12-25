@@ -1,5 +1,9 @@
-const decodeToken = require('../utils/decodeToken');
+const { v4: uuidv4 } = require('uuid');
 const prisma = require('../prisma/prismaInstance');
+
+const notificationTypes = {
+	inviteToRoom: 'inviteToRoom',
+};
 
 class Users {
 	async getUsers(req, res) {
@@ -7,51 +11,97 @@ class Users {
 			const reqUserId = req.userId;
 			const { name } = req.query;
 
-			let friends = await prisma.friends.findMany({
+			let rooms = await prisma.rooms.findMany({
 				where: {
 					userId: reqUserId,
 				},
-				include: {
-					user: true,
-				},
-			});
-
-			friends = friends.map((friend) => {
-				return { id: friend.user.id, userName: friend.user.userName, userImage: friend.user.userImage };
-			});
-
-			const users = await prisma.user.findMany({
 				select: {
-					id: true,
-					userName: true,
-					userImage: true,
+					roomUUID: true,
 				},
-				where: {
-					userName: { contains: name.trim() },
-					id: {
-						not: reqUserId,
-					},
-					AND: [
-						{
-							Friends: {
-								every: {
-									userId: { not: reqUserId },
+			});
+
+			rooms = rooms.map((room) => {
+				return room.roomUUID;
+			});
+
+			let uniqueUsers = [];
+			const HOST = process.env.HOST;
+
+			if (rooms.length) {
+				const userIds = await Promise.all(
+					rooms.map(async (room) => {
+						const { userId } = await prisma.rooms.findFirst({
+							where: {
+								roomUUID: room,
+								userId: {
+									not: reqUserId,
 								},
 							},
+							select: {
+								userId: true,
+							},
+						});
+
+						return userId;
+					})
+				);
+
+				const users = await Promise.all(
+					userIds.map(async (userId) => {
+						const result = await prisma.user.findFirst({
+							select: {
+								id: true,
+								userName: true,
+								userImage: true,
+							},
+							where: {
+								userName: { contains: name.trim() },
+								id: {
+									not: userId,
+								},
+							},
+							orderBy: {
+								userCreatedAt: 'desc',
+							},
+							take: 10,
+						});
+
+						if (!uniqueUsers.some((user) => user.id === result.id)) {
+							if (result.userImage) {
+								result.userImage = HOST + result.userImage;
+							}
+							uniqueUsers.push(result);
+						}
+					})
+				);
+			} else {
+				uniqueUsers = await prisma.user.findMany({
+					select: {
+						id: true,
+						userName: true,
+						userImage: true,
+					},
+					where: {
+						userName: { contains: name.trim() },
+						id: {
+							not: reqUserId,
 						},
-					],
-				},
-				orderBy: {
-					userCreatedAt: 'desc',
-				},
-				take: 10,
-			});
+					},
+					orderBy: {
+						userCreatedAt: 'desc',
+					},
+					take: 10,
+				});
+
+				uniqueUsers = uniqueUsers.map((user) => {
+					return { ...user, userImage: user.userImage ? HOST + user.userImage : null };
+				});
+			}
 
 			res.status(200).json({
 				success: true,
 				data: {
-					friends: friends,
-					users: users,
+					users: uniqueUsers,
 				},
 			});
 		} catch (error) {
@@ -113,26 +163,36 @@ class Users {
 		}
 	}
 
-	async addFriend(req, res) {
+	async sendInviteToPersonalRoom(req, res) {
 		try {
 			const reqUserId = req.userId;
-			const { friendId } = req.body;
+			const { userId } = req.body;
 
-			const addToFriend = await prismaInstance.friends.create({
+			const roomId = uuidv4();
+
+			const createInvite = await prisma.inviteToRoom.create({
 				data: {
-					userId: reqUserId,
-					friendId: friendId,
+					fromUserId: reqUserId,
+					toUserId: userId,
+					roomId: roomId,
+				},
+			});
+
+			const createNotification = await prisma.notifications.create({
+				data: {
+					notificationId: createInvite.id,
+					type: notificationTypes.inviteToRoom,
+					userId: userId,
 				},
 			});
 
 			res.status(200).json({
 				success: true,
-				data: {
-					addedFriend: addToFriend,
-				},
 			});
 		} catch (error) {
 			res.status(400).json({ success: false, error: error.message });
+
+			console.log();
 		}
 	}
 }
