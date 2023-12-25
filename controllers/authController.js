@@ -3,7 +3,6 @@ const bcrypts = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const prisma = require('../prisma/prismaInstance');
 const tokenService = require('../service/token.service.js');
-const decodeToken = require('../utils/decodeToken.js');
 
 class Auth {
 	async login(req, res) {
@@ -37,7 +36,10 @@ class Auth {
 
 			const tokens = await tokenService.generateToken(user);
 			const HOST = process.env.HOST;
-			user.userImage = HOST + isUserExist.userImage;
+
+			if (user.userImage) {
+				user.userImage = HOST + isUserExist.userImage;
+			}
 
 			await prisma.user.update({
 				where: {
