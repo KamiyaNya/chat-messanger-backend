@@ -8,6 +8,6 @@ userRouter.get('/api/users/find_user_and_groups', checkAuth, userController.getU
 
 userRouter.get('/api/users/friends', checkAuth, userController.getFriends);
 
-userRouter.post('/api/users/add_friend', checkAuth, userController.addFriend);
+userRouter.post('/api/users/create_invite_to_personal_room', checkAuth, userController.sendInviteToPersonalRoom);
 
 module.exports = userRouter;
